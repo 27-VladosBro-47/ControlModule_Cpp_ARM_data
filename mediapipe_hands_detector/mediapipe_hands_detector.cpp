@@ -39,8 +39,9 @@
         graph.WaitUntilDone();
     }
 
-    MediaPipeHandsDetector::MediaPipeHandsDetector(std::string calculator_graph_config_file)                   
+    MediaPipeHandsDetector::MediaPipeHandsDetector(bool &isDetected, std::string calculator_graph_config_file)                   
     {
+        this->isDetected = isDetected;
         LOG(INFO) << Setup(calculator_graph_config_file);
     }
 
@@ -51,11 +52,11 @@
 
     absl::Status MediaPipeHandsDetector::RunMPPGraph(cv::Mat &camera_frame_raw)
     {
-        LOG(INFO) << "Start grabbing and processing frames.";
+        //LOG(INFO) << "Start grabbing and processing frames.";
 
         cv::Mat camera_frame;
         cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
-        cv::flip(camera_frame, camera_frame, /*flipcode=HORIZONTAL*/ 1);
+        //cv::flip(camera_frame, camera_frame, /*flipcode=HORIZONTAL*/ 1);
 
         // Обгортаємо Mat в ImageFrame (формуємо пакет із зображенням)
         auto input_frame = absl::make_unique<::mediapipe::ImageFrame>(
@@ -81,7 +82,9 @@
 
         if (hand_count != 0)
         {
-            LOG(INFO) << "Found hand count : " << hand_count;
+            isDetected = true;
+
+            //LOG(INFO) << "Found hand count : " << hand_count;
 
             // Отримуємо пакет із графа (Hand landmsrks)
             if (!outputLandmarksPoller->Next(&landmarksPacket))
@@ -92,7 +95,7 @@
             auto &multi_hand_landmarks = landmarksPacket.Get<std::vector<::mediapipe::NormalizedLandmarkList>>();
 
             //================================
-            LOG(INFO) << "#Multi Hand landmarks: " << multi_hand_landmarks.size();
+            //LOG(INFO) << "#Multi Hand landmarks: " << multi_hand_landmarks.size();
             int hand_id = 0;
             for (const auto &single_hand_landmarks : multi_hand_landmarks)
             {
@@ -110,6 +113,10 @@
                 // }
             }
             //================================
+        }
+        else
+        {
+            isDetected = false;
         }
 
         // Get the graph result packet, or stop if that fails.
