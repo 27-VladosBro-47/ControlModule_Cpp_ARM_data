@@ -10,6 +10,14 @@ class HandTracking
 {
     private:
 
+    // Змінна позначає стан роботи програми
+    // Якщо 1 - робота програми запущенна
+    // Якщо 0 - робота програми завершенна
+    bool isWork;
+
+    // Якщо кисть виявлена, isDetected = 1, інакше - 0
+    bool isDetected;
+
     // Змінна для захоплення відеопотоку (з камери)
     cv::VideoCapture capture;
     // Якщо змінні присвоєно true - процес захоплення відеопотоку працює
@@ -35,33 +43,15 @@ class HandTracking
 
     int area;
     double perimeter;
-
     //=====Frame_Processing=====//
 
     //=====Center_of_mass=====//
+    cv::Point point;
     int X, Y;
     int numbPoints;
-
     //=====Center_of_mass=====//
 
-    public:
-
-    HandTracking()
-    {
-        capture.open(0);
-
-        if(capture.isOpened() == 0)
-        {
-            std::cerr << "HandTracking: Cant open VideoCapture\n";
-        }
-
-    }
-
-    ~HandTracking()
-    {
-        capture.release();
-
-    }
+    //===================================================//
 
     void calculateCenterOfMass()
     {
@@ -80,7 +70,10 @@ class HandTracking
 
         X = X/(double)numbPoints;
         Y = Y/(double)numbPoints;
-        cv::circle(camera_frame_raw, cv::Point(X,Y), 8, cv::Scalar(255,0,255), cv::FILLED);
+
+        point.x = X; point.y = Y;
+
+        cv::circle(camera_frame_raw, point, 5, cv::Scalar(255,0,255), cv::FILLED);
 
     }
 
@@ -102,7 +95,7 @@ class HandTracking
 
         // Знаходимо контури червоного квадрата-рамки
         cv::findContours(frameMask, contours, hierarchy, cv::RETR_EXTERNAL, cv::CHAIN_APPROX_SIMPLE);
-        std::cout << "contours     =    " << contours.size() << '\n';
+        //std::cout << "contours     =    " << contours.size() << '\n';
             contoursPoly.resize(contours.size());
 
             for(int numbOfContours = 0; numbOfContours < contours.size(); numbOfContours++)
@@ -120,16 +113,37 @@ class HandTracking
                 }
             }
         
+    }
 
+    public:
 
+    HandTracking()
+    {
+        point.x = -1;
+        point.y = -1;
+
+        capture.open(0);
+
+        if(capture.isOpened() == 0)
+        {
+            std::cerr << "HandTracking: Cant open VideoCapture\n";
+        }
+
+    }
+
+    ~HandTracking()
+    {
+        capture.release();
 
     }
 
     bool processTracking()
     {
+        isWork = true;
+
         // Створюємо об'єкт класу MediaPipeHandsDetector
         // для розпізнавання кисті руки
-        MediaPipeHandsDetector handsDetector;
+        MediaPipeHandsDetector handsDetector(isDetected);
 
         LOG(INFO) << "Start grabbing and processing frames.";
 
@@ -139,6 +153,7 @@ class HandTracking
         {
             // Отримуємо кадр відеопотоку
             capture >> camera_frame_raw;
+            cv::flip(camera_frame_raw, camera_frame_raw, /*flipcode=VERTICAL*/ -1);
 
             // Якщо матриця порожня, отже завершився процес захоплення відео
             // Закінчуємо цикл
@@ -153,20 +168,30 @@ class HandTracking
             absl::Status run_status = handsDetector.RunMPPGraph(camera_frame_raw);
 
             if (!run_status.ok()) {
-                LOG(ERROR) << "Failed to run the graph: " << run_status.message();
+                //LOG(ERROR) << "Failed to run the graph: " << run_status.message();
+                isWork = false;
                 return false;
             } 
             else 
             {
-                LOG(INFO) << "Success!";
+                //LOG(INFO) << "Success!";
             }
 
+            if(isDetected)
+            {
             // Обробка кадру для корегування положення камери
             frameProcessing();
-
+            // Обчислення центру мас кисті
             calculateCenterOfMass();
+
             //********************************//
             //********************************//
+            }
+            else
+            {
+                point.x = -1;
+                point.y = -1;
+            }
 
             // Відображення оброблених кадрів
             showVideo();
@@ -175,6 +200,16 @@ class HandTracking
 
 
         return true;
+    }
+
+    bool &getIsWork()
+    {
+        return isWork;
+    }
+
+    cv::Point &getPoint()
+    {
+        return point;
     }
 
 };

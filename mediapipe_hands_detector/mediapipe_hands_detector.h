@@ -31,6 +31,9 @@ constexpr char kMultiPalmRects[] = "multi_palm_rects";
 class MediaPipeHandsDetector
 {
 private:
+
+    bool isDetected;
+
     mediapipe::CalculatorGraph graph;
 
     std::unique_ptr<mediapipe::OutputStreamPoller> outputVideoPoller;
@@ -54,7 +57,7 @@ protected:
     absl::Status Shutdown();
 
 public:
-    MediaPipeHandsDetector(std::string calculator_graph_config_file = "mediapipe/graphs/hand_tracking/custom_hand_tracking_desktop_live.pbtxt");
+    MediaPipeHandsDetector(bool &isDetected, std::string calculator_graph_config_file = "mediapipe/graphs/hand_tracking/custom_hand_tracking_desktop_live.pbtxt");
 
     virtual ~MediaPipeHandsDetector();
     

@@ -9,5 +9,6 @@ cc_library(
     deps = [
         "//mediapipe/examples/desktop/controle_module/mediapipe_hands_detector:mediapipe_hands_detector",
         "//mediapipe/examples/desktop/controle_module/neural_network:neural_network",
+        "//mediapipe/examples/desktop/controle_module/altazimuth:altazimuth",
     ],
 )

@@ -1,7 +1,9 @@
 //#include "mediapipe_hands_detector/mediapipe_hands_detector.h"
 #include "hand_tracking/hand_tracking.h"
+#include "altazimuth/altazimuth.h"
 
 #include <filesystem>
+#include <thread>
 
 // Перевірка аргументів командного рядка
 // Повертає string який позначає режим, у якому має працювати програма
@@ -191,6 +193,7 @@ int main(int argc, char** argv)
   mode = setMode(argc, argv); 
 
 //========================================//
+// namespace fs = std::filesystem;
 // std::string buff =  fs::current_path();
 // buff = buff + "/mediapipe/examples/desktop/controle_module/train_data_hands/0";
 
@@ -235,8 +238,15 @@ int main(int argc, char** argv)
   {
     std::cout << "Start the program in \"" << mode << "\" mode." << std::endl;
 
-    //HandTracking handTracking;
-    //handTracking.processTracking();
+    HandTracking handTracking;
+    //AltAzimuth(handTracking.getIsWork(), handTracking.getPoint());
+    std::thread th1([&]()
+    {
+      //AltAzimuth.mainLoop();
+    });
+    th1.detach();
+
+    handTracking.processTracking();
 
   }
   else if(mode == "learning")
