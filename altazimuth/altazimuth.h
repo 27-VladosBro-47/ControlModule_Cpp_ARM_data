@@ -198,6 +198,7 @@
 //         //Виставляємо сервоприводи у початкове положення
 //         softPwmWrite(pin0, positionY);
 //         softPwmWrite(pin1, positionX);
+//         delay(500);
 
 //         //---------------------------//
         

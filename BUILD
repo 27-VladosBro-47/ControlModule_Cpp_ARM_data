@@ -5,6 +5,7 @@ cc_binary(
     srcs = ["source.cpp"],
     deps = [
         "//mediapipe/examples/desktop/controle_module/hand_tracking:hand_tracking",
+        "//mediapipe/examples/desktop/controle_module/altazimuth:altazimuth",
         "//mediapipe/graphs/hand_tracking:desktop_tflite_calculators",
     ],
 )

@@ -42,22 +42,47 @@ std::string setMode(int argc, char** argv)
 }
 
 
-void saveTrainData(std::string type , int numbOfFolders /*Номер жеста*/, const std::vector<double> &data)
+
+// Підрахунок кількості елементів у папці
+// (не рахуючи елементи інших папок, які містяться в даній папці)
+// Наприклад pathToFolder== "/mainDir/dir0/folder"
+// пошук буде здійснюватися у папці folder
+int getQuantityOfItemInFolder(std::string pathToFolder)
+{
+      namespace fs = std::filesystem;
+
+      // Підраховую кількість файлів у папці
+      int count = 0;
+      
+      fs::path pathToFiles(pathToFolder);
+      for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
+      {
+        //std::cout << entry.path() << std::endl;
+        ++count;
+      }
+      
+      return count;
+}
+
+void saveTrainData(std::string type , int numbOfFolder /*Номер жеста*/, const std::vector<double> &data)
 {
     // Визначаю простір імен
     using json = nlohmann::json;
     namespace fs = std::filesystem;
 
     //==========Змінні===============
-    int countFiles = 0;         // Змінна зберігає кількість виявлених файлів у теці
+    int countFiles = 0;           // Змінна зберігає кількість виявлених файлів у теці
 
-    std::ifstream in_file;      // Файлове введеня (Читання з файлу)
-    std::ofstream out_file;     // Файлове виведення (Запис у файл)
-    json j;                     // Змінна, 
+    std::ifstream in_file;        // Файлове введеня (Читання з файлу)
+    std::ofstream out_file;       // Файлове виведення (Запис у файл)
+    json j;                       // Змінна, 
 
-    std::string curr_path;      // Змінна містить шлях до поточеої робочої теки
+    std::string currPath;         // Змінна містить шлях до поточеої робочої теки
 
-    std::string fileName;       // Змінна містить повний шлях до необхідного файлу
+    std::string fileName;         // Змінна містить повний шлях до необхідного файлуv
+
+    std::string pathToFolder;     // Шлях до основної папки з навч даними (Наприклад папка train_data_hands)
+    std::string pathToSubFolder;  // Шлях до підпапок (папки 0, 1, 2, 3, 4...)
     //===============================
 
 
@@ -97,19 +122,27 @@ void saveTrainData(std::string type , int numbOfFolders /*Номер жеста*
     // Якщо тип даних "hand" - виконуємо відповідну процедуру
     if(type == "hand")
     {
-      curr_path =  fs::current_path();
-      curr_path = curr_path + "/mediapipe/examples/desktop/controle_module/train_data_hands/" + std::to_string(numbOfFolders);
+      currPath =  fs::current_path();
+      pathToFolder = currPath + "/mediapipe/examples/desktop/controle_module/train_data/train_data_hands";
 
       // Підраховую кількість файлів у папці
       countFiles = 0;
-      fs::path pathToFiles(curr_path);
-      for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
+      // Кількість папок задасть кількість ітерацій для сканування
+      int numbOfDirs = getQuantityOfItemInFolder(pathToFolder);
+      for(int folder = 0; folder < numbOfDirs; folder++)
       {
-        //std::cout << entry.path() << std::endl;
-        ++countFiles;
+        pathToSubFolder = pathToFolder + "/" + std::to_string(folder);
+        countFiles+=getQuantityOfItemInFolder(pathToSubFolder);
       }
 
-      fileName = curr_path + "/" + std::to_string(countFiles) + ".json";
+      // fs::path pathToFiles(curr_path);
+      // for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
+      // {
+      //   //std::cout << entry.path() << std::endl;
+      //   ++countFiles;
+      // }
+
+      fileName = pathToFolder + "/" + std::to_string(numbOfFolder) + "/" + std::to_string(countFiles) + ".json";
       openFile(fileName);
 
       // Парсимо дані з файлу який відкрили (створили)
@@ -117,7 +150,7 @@ void saveTrainData(std::string type , int numbOfFolders /*Номер жеста*
 
       // Розпочинаємо запис даних у файл
       j["Type"] = "hand";                   // Тип жестикуляції
-      j["Numb_of_motion"] = numbOfFolders;           // Номер жеста
+      j["Numb_of_motion"] = numbOfFolder;           // Номер жеста
       for(int i = 0; i < data.size(); i++)  // Запис навчальних даних
       {
         j["Input"][i] = data[i];
@@ -143,17 +176,32 @@ void loadTrainData(std::string type, int numbOfFolder, int numbOfFile, std::stri
     std::ofstream out_file;     // Файлове виведення (Запис у файл)
     json j;                     // Змінна, 
 
-    std::string curr_path;      // Змінна містить шлях до поточеої робочої теки
+    std::string currPath;      // Змінна містить шлях до поточеої робочої теки
 
     std::string fileName;       // Змінна містить повний шлях до необхідного файлу
+    std::string pathToFolder;   // Шлях до папки з даними
     //===============================
 
   if(type == "hand")
   {
+    
     // Формування шляху до файлу
-    curr_path =  fs::current_path();
-    fileName = curr_path + "/mediapipe/examples/desktop/controle_module/train_data_hands/"
+    currPath =  fs::current_path();
+    fileName = currPath + "/mediapipe/examples/desktop/controle_module/train_data/train_data_hands/"
     + std::to_string(numbOfFolder) + "/" + std::to_string(numbOfFile) + ".json";
+
+      currPath =  fs::current_path();
+      pathToFolder = currPath + "/mediapipe/examples/desktop/controle_module/train_data/train_data_hands/" + std::to_string(numbOfFolder);
+
+
+      int count = 0;
+      fs::path pathToFiles(pathToFolder);
+      for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
+      {
+        if(count == numbOfFile)
+        { fileName = entry.path(); std::cout << fileName << std::endl; break;}
+        ++count;        
+      }
 
     // Відкриття файлу
     in_file.open(fileName);
@@ -184,7 +232,6 @@ void loadTrainData(std::string type, int numbOfFolder, int numbOfFile, std::stri
 }
 
 
-
 int main(int argc, char** argv)
 {
   namespace fs = std::filesystem;
@@ -192,7 +239,7 @@ int main(int argc, char** argv)
   std::string mode;
   mode = setMode(argc, argv); 
 
-//========================================//
+////========================================//
 // namespace fs = std::filesystem;
 // std::string buff =  fs::current_path();
 // buff = buff + "/mediapipe/examples/desktop/controle_module/train_data_hands/0";
@@ -202,9 +249,10 @@ int main(int argc, char** argv)
 // {
 //   std::cout << entry.path() << std::endl;
 // }
-//========================================//
+////========================================//
 
-//========================================//
+
+////========================================//
 // std::vector<double> data;
 // data.resize(63);
 // double extra = 0.1;
@@ -214,14 +262,35 @@ int main(int argc, char** argv)
 //   extra+=0.1;
 // }
 
-// saveTrainData("hand", 1, data);
+// saveTrainData("hand", 3, data); // 0
+// saveTrainData("hand", 0, data); // 1
+// saveTrainData("hand", 2, data); // 2
+// saveTrainData("hand", 1, data); // 3
+// saveTrainData("hand", 4, data); // 4
+// saveTrainData("hand", 2, data); // 5
+// saveTrainData("hand", 2, data); // 6
+// saveTrainData("hand", 3, data); // 7
+// saveTrainData("hand", 4, data); // 8
+// saveTrainData("hand", 5, data); // 9
+// saveTrainData("hand", 6, data); // 10
+// saveTrainData("hand", 7, data); // 11
+// saveTrainData("hand", 8, data); // 12
+// saveTrainData("hand", 0, data); // 13
+// saveTrainData("hand", 3, data); // 14
+// saveTrainData("hand", 3, data); // 15
+// saveTrainData("hand", 3, data); // 16
+// saveTrainData("hand", 8, data); // 17
+// saveTrainData("hand", 3, data); // 18
+// saveTrainData("hand", 4, data); // 19
+// saveTrainData("hand", 3, data); // 20
 
 // data.clear();
 
 // std::string type_out;
 // int numb_out;
 
-// loadTrainData("hand", 1, 0, type_out, numb_out, data);
+// loadTrainData("hand", 3, 4, type_out, numb_out, data);
+
 
 // std::cout << "==============================\n";
 // std::cout << "type_out = " << type_out << std::endl;
@@ -230,23 +299,24 @@ int main(int argc, char** argv)
 // {
 //   std::cout << "i[" << i << "] = " << data[i] << std::endl;
 // }
-//std::cout << "==============================\n";
-//========================================//
+// std::cout << "==============================\n";
+// //========================================//
+
 
 
   if(mode == "default")
   {
     std::cout << "Start the program in \"" << mode << "\" mode." << std::endl;
 
-    HandTracking handTracking;
-    //AltAzimuth(handTracking.getIsWork(), handTracking.getPoint());
-    std::thread th1([&]()
-    {
-      //AltAzimuth.mainLoop();
-    });
-    th1.detach();
+    // HandTracking handTracking;
+    // //AltAzimuth(handTracking.getIsWork(), handTracking.getPoint());
+    // std::thread th1([&]()
+    // {
+    //   //AltAzimuth.mainLoop();
+    // });
+    // th1.detach();
 
-    handTracking.processTracking();
+    // handTracking.processTracking();
 
   }
   else if(mode == "learning")
