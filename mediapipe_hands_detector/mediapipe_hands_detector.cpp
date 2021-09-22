@@ -56,7 +56,7 @@
 
         cv::Mat camera_frame;
         cv::cvtColor(camera_frame_raw, camera_frame, cv::COLOR_BGR2RGB);
-        //cv::flip(camera_frame, camera_frame, /*flipcode=HORIZONTAL*/ 1);
+        cv::flip(camera_frame, camera_frame, /*flipcode=HORIZONTAL*/ 1);
 
         // Обгортаємо Mat в ImageFrame (формуємо пакет із зображенням)
         auto input_frame = absl::make_unique<::mediapipe::ImageFrame>(
@@ -100,7 +100,7 @@
             for (const auto &single_hand_landmarks : multi_hand_landmarks)
             {
                 ++hand_id;
-                LOG(INFO) << "Hand [" << hand_id << "]:";
+                // LOG(INFO) << "Hand [" << hand_id << "]:";
                 // for (int i = 0; i < single_hand_landmarks.landmark_size(); ++i)
                 // {
                 //     const auto &landmark = single_hand_landmarks.landmark(i);

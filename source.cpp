@@ -42,196 +42,6 @@ std::string setMode(int argc, char** argv)
 }
 
 
-
-// Підрахунок кількості елементів у папці
-// (не рахуючи елементи інших папок, які містяться в даній папці)
-// Наприклад pathToFolder== "/mainDir/dir0/folder"
-// пошук буде здійснюватися у папці folder
-int getQuantityOfItemInFolder(std::string pathToFolder)
-{
-      namespace fs = std::filesystem;
-
-      // Підраховую кількість файлів у папці
-      int count = 0;
-      
-      fs::path pathToFiles(pathToFolder);
-      for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
-      {
-        //std::cout << entry.path() << std::endl;
-        ++count;
-      }
-      
-      return count;
-}
-
-void saveTrainData(std::string type , int numbOfFolder /*Номер жеста*/, const std::vector<double> &data)
-{
-    // Визначаю простір імен
-    using json = nlohmann::json;
-    namespace fs = std::filesystem;
-
-    //==========Змінні===============
-    int countFiles = 0;           // Змінна зберігає кількість виявлених файлів у теці
-
-    std::ifstream in_file;        // Файлове введеня (Читання з файлу)
-    std::ofstream out_file;       // Файлове виведення (Запис у файл)
-    json j;                       // Змінна, 
-
-    std::string currPath;         // Змінна містить шлях до поточеої робочої теки
-
-    std::string fileName;         // Змінна містить повний шлях до необхідного файлуv
-
-    std::string pathToFolder;     // Шлях до основної папки з навч даними (Наприклад папка train_data_hands)
-    std::string pathToSubFolder;  // Шлях до підпапок (папки 0, 1, 2, 3, 4...)
-    //===============================
-
-
-    //========Лямбда-вирази==========
-    // Лямбда-вираз, що забезпечує відкриття файлу
-    // Або створює файл, якщо файлу не існує
-    auto openFile = [&in_file](std::string fileName)
-    {
-    in_file.open(fileName);
-
-        if(!in_file.is_open())
-        {
-            in_file.close();
-
-            std::fstream f (fileName, std::ios::in | std::ios::out | std::ios::app);
-            f << '{' << std::endl << std::endl << '}';
-            f.close();
-
-            in_file.open(fileName);
-        }
-
-
-    };
-
-    // Лямбда-вираз, що забезпечує зберігання файлу
-    auto saveAndCloseFile = [&](std::string fileName)
-    {
-        in_file.close();
-        out_file.open(fileName);
-
-        out_file << std::setw(4) << j << std::endl;
-        out_file.close();
-    };
-    //===============================
-
-
-    // Якщо тип даних "hand" - виконуємо відповідну процедуру
-    if(type == "hand")
-    {
-      currPath =  fs::current_path();
-      pathToFolder = currPath + "/mediapipe/examples/desktop/controle_module/train_data/train_data_hands";
-
-      // Підраховую кількість файлів у папці
-      countFiles = 0;
-      // Кількість папок задасть кількість ітерацій для сканування
-      int numbOfDirs = getQuantityOfItemInFolder(pathToFolder);
-      for(int folder = 0; folder < numbOfDirs; folder++)
-      {
-        pathToSubFolder = pathToFolder + "/" + std::to_string(folder);
-        countFiles+=getQuantityOfItemInFolder(pathToSubFolder);
-      }
-
-      // fs::path pathToFiles(curr_path);
-      // for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
-      // {
-      //   //std::cout << entry.path() << std::endl;
-      //   ++countFiles;
-      // }
-
-      fileName = pathToFolder + "/" + std::to_string(numbOfFolder) + "/" + std::to_string(countFiles) + ".json";
-      openFile(fileName);
-
-      // Парсимо дані з файлу який відкрили (створили)
-      j = json::parse(in_file);
-
-      // Розпочинаємо запис даних у файл
-      j["Type"] = "hand";                   // Тип жестикуляції
-      j["Numb_of_motion"] = numbOfFolder;           // Номер жеста
-      for(int i = 0; i < data.size(); i++)  // Запис навчальних даних
-      {
-        j["Input"][i] = data[i];
-      }
-      // Зберігання файлу
-      saveAndCloseFile(fileName);
-      j.clear();
-
-    }
-
-}
-
-void loadTrainData(std::string type, int numbOfFolder, int numbOfFile, std::string &type_out, int &numb_out, std::vector<double> &data_out)
-{
-  // Визначаю простір імен
-  using json = nlohmann::json;
-  namespace fs = std::filesystem;
-
-  //==========Змінні===============
-    int countFiles = 0;         // Змінна зберігає кількість виявлених файлів у теці
-
-    std::ifstream in_file;      // Файлове введеня (Читання з файлу)
-    std::ofstream out_file;     // Файлове виведення (Запис у файл)
-    json j;                     // Змінна, 
-
-    std::string currPath;      // Змінна містить шлях до поточеої робочої теки
-
-    std::string fileName;       // Змінна містить повний шлях до необхідного файлу
-    std::string pathToFolder;   // Шлях до папки з даними
-    //===============================
-
-  if(type == "hand")
-  {
-    
-    // Формування шляху до файлу
-    currPath =  fs::current_path();
-    fileName = currPath + "/mediapipe/examples/desktop/controle_module/train_data/train_data_hands/"
-    + std::to_string(numbOfFolder) + "/" + std::to_string(numbOfFile) + ".json";
-
-      currPath =  fs::current_path();
-      pathToFolder = currPath + "/mediapipe/examples/desktop/controle_module/train_data/train_data_hands/" + std::to_string(numbOfFolder);
-
-
-      int count = 0;
-      fs::path pathToFiles(pathToFolder);
-      for (const auto & entry : std::filesystem::directory_iterator(pathToFiles))
-      {
-        if(count == numbOfFile)
-        { fileName = entry.path(); std::cout << fileName << std::endl; break;}
-        ++count;        
-      }
-
-    // Відкриття файлу
-    in_file.open(fileName);
-    if(!in_file.is_open())
-    {
-      std::cerr << "loadTrainData : Can`t open the file:" << std::endl;
-      std::cerr << fileName << std::endl;
-    }
-
-    // Парсинг файлу
-    j = json::parse(in_file);
-
-    // Закриття файлу
-    in_file.close();
-
-    type_out = j["Type"];
-    numb_out = j["Numb_of_motion"];
-
-    data_out.resize(63);
-    for(int i = 0; i < data_out.size(); i++)  // Запис навчальних даних
-    {
-      data_out[i] = j["Input"][i];
-    }
-
-    j.clear();
-
-  }
-}
-
-
 int main(int argc, char** argv)
 {
   namespace fs = std::filesystem;
@@ -302,26 +112,47 @@ int main(int argc, char** argv)
 // std::cout << "==============================\n";
 // //========================================//
 
+    std::vector<int> hiddenLayers;
+    hiddenLayers.resize(3);
+    hiddenLayers[0]=2;
+    hiddenLayers[1]=2;
+    hiddenLayers[2]=2;
 
+    int inputPerceptrons = 63;
+    int outputPerceptrons = 9;
 
   if(mode == "default")
   {
     std::cout << "Start the program in \"" << mode << "\" mode." << std::endl;
 
-    // HandTracking handTracking;
-    // //AltAzimuth(handTracking.getIsWork(), handTracking.getPoint());
-    // std::thread th1([&]()
-    // {
-    //   //AltAzimuth.mainLoop();
-    // });
-    // th1.detach();
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
+    std::cout << "gesture - 4" << std::endl;
 
-    // handTracking.processTracking();
+    HandTracking handTracking(inputPerceptrons, outputPerceptrons, hiddenLayers);
+    //AltAzimuth(handTracking.getIsWork(), handTracking.getPoint());
+    //std::thread th1([&]()
+    //{
+      //AltAzimuth.mainLoop();
+    //});
+    //th1.detach();
 
+    handTracking.processTracking();
+    
   }
   else if(mode == "learning")
   {
     std::cout << "Start the program in \"" << mode << "\" mode." << std::endl;
+    HandTracking handTracking(inputPerceptrons, outputPerceptrons, hiddenLayers);
+
+    handTracking.processLearning();
+
 
   } 
   else if(mode == "make_data")

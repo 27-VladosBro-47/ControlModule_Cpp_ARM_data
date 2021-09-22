@@ -51,6 +51,14 @@ class HandTracking
     int numbPoints;
     //=====Center_of_mass=====//
 
+    //=====Neural Network=====//
+    std::vector<int> hiddenLayers;
+    int inputPerceptrons;
+    int outputPerceptrons;
+
+    NeuralNetwork *neuralNetwork;
+    //=====Neural Network=====//
+
     //===================================================//
 
     void calculateCenterOfMass()
@@ -117,7 +125,7 @@ class HandTracking
 
     public:
 
-    HandTracking()
+    HandTracking(int inputPerceptrons, int outputPerceptrons, std::vector<int> hiddenLayers)
     {
         point.x = -1;
         point.y = -1;
@@ -129,17 +137,29 @@ class HandTracking
             std::cerr << "HandTracking: Cant open VideoCapture\n";
         }
 
+        this->inputPerceptrons = inputPerceptrons;
+        this->outputPerceptrons = outputPerceptrons;
+        this->hiddenLayers = hiddenLayers;
+
+        neuralNetwork = new NeuralNetwork(inputPerceptrons, outputPerceptrons, hiddenLayers);
+        std::cout << "Initialization neural network done" << std::endl;
+
+        neuralNetwork->setPrimaryPerseptrons();
+        std::cout << "setPrimaryPerseptrons done" << std::endl;
+        neuralNetwork->setPrimaryWeights();
+        std::cout << "setPrimaryWeights done" << std::endl;
     }
 
     ~HandTracking()
     {
         capture.release();
-
+        delete neuralNetwork;
+        std::cout << "End the work." << std::endl;
     }
 
-    bool processTracking()
+    void processTracking()
     {
-        isWork = true;
+        neuralNetwork->loadData("hand");
 
         // Створюємо об'єкт класу MediaPipeHandsDetector
         // для розпізнавання кисті руки
@@ -147,20 +167,20 @@ class HandTracking
 
         LOG(INFO) << "Start grabbing and processing frames.";
 
-        grab_frames = true;
+        isWork = true;
         // Розпочинаємо роботу з відеопотоком
-        while (grab_frames) 
+        while (isWork) 
         {
             // Отримуємо кадр відеопотоку
             capture >> camera_frame_raw;
-            cv::flip(camera_frame_raw, camera_frame_raw, /*flipcode=VERTICAL*/ -1);
+            //cv::flip(camera_frame_raw, camera_frame_raw, /*flipcode=VERTICAL*/ -1);
 
             // Якщо матриця порожня, отже завершився процес захоплення відео
             // Закінчуємо цикл
             if (camera_frame_raw.empty()) 
             {
                 LOG(INFO) << "Empty frame, end of video reached.";
-                grab_frames = false;
+                isWork = false;
                 break;
             }
 
@@ -170,7 +190,7 @@ class HandTracking
             if (!run_status.ok()) {
                 //LOG(ERROR) << "Failed to run the graph: " << run_status.message();
                 isWork = false;
-                return false;
+                return;
             } 
             else 
             {
@@ -193,13 +213,29 @@ class HandTracking
                 point.y = -1;
             }
 
+
             // Відображення оброблених кадрів
             showVideo();
 
+            const int pressed_key = cv::waitKey(5);
+            if (pressed_key >= 0 && pressed_key != 255) isWork = false;
+
         }
 
+    }
 
-        return true;
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!//
+    // Розкоментувати функсію навчання
+    void processLearning()
+    {
+        namespace fs = std::filesystem;
+        //neuralNetwork->study("hand");
+
+        std::string currPath =  fs::current_path();
+        std::string pathToFolder = currPath + "/mediapipe/examples/desktop/controle_module/data/test_data_hands/";
+
+        neuralNetwork->saveWeights(pathToFolder);
+        std::cout << "Weights have been saved." << std::endl;
     }
 
     bool &getIsWork()

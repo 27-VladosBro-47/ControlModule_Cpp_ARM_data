@@ -65,7 +65,7 @@ NeuralNetwork(int inputPerceptrons, int outputPerceptrons, std::vector<int> hidd
                 {
                     if(numbLayers == (countLayers-1))   // Вихідний шар
                     {
-                        layers[numbLayers-1] = new Perceptrons(outputPerceptrons, 1);
+                        layers[numbLayers] = new Perceptrons(outputPerceptrons, 1);
                     } 
                     else 
                     {                                   // Прихований шар
@@ -109,6 +109,7 @@ void setPrimaryPerseptrons()
 
     for (int layer = 0; layer < countLayers; layer++)
     {
+        
         for (int perceptron = 0; perceptron < layers[layer]->quantityOfPerceptrons; perceptron++)
         {
             layers[layer]->perceptronsLayer[perceptron].value = (double)(rand()) / RAND_MAX * (1.0 - 0.01) + 0.01;
@@ -322,11 +323,6 @@ double levelOfEducation()
 
 // --- з.р.п. - Зворотнє розповсюдження помилки ---
 
-void learningProcess()
-{   
-
-}
-
 bool saveWeights(std::string path)
 {
     using json = nlohmann::json;
@@ -442,22 +438,63 @@ bool loadWeights(std::string path, int numbOfLayer)
 
     file.close();
 
+    std::cout << "11111111111111111 LAYER = " << numbOfLayer << std::endl;
+
     for(int perceptron = 0; perceptron < layers[numbOfLayer]->quantityOfPerceptrons; perceptron++)
     {
+        std::cout << "================== Perceptron = " << perceptron << std::endl;
         for(int weight = 0; weight < layers[numbOfLayer]->quantityOfWeights; weight++)
         {
             layers[numbOfLayer]->perceptronsLayer[perceptron].weights[weight] =
                     j["Layers"][numbOfLayer]["Perceptrons"][perceptron]["Weights"][weight]["weight"];
-            //qDebug() << "L: " << numbOfLayer << " P: " << perceptron << " W: " << weight << " = " << layers[numbOfLayer]->getPerceptronsArray()[perceptron].weights[weight];
+            std::cout << "Weight[" << weight << "] = " << 
+            layers[numbOfLayer]->perceptronsLayer[perceptron].weights[weight] << std::endl;
         }
         layers[numbOfLayer]->bias.weights[perceptron] = j["Layers"][numbOfLayer]["Biases"][perceptron]["weight"];
+        std::cout << "+++++++ Bias[" << perceptron << "] = " << layers[numbOfLayer]->bias.weights[perceptron] << std::endl;
     }
+    std::cout << "11111111111111111 END LAYER = " << std::endl << std::endl;
 
     j.clear();
 
     return 1;
 }
 
+void loadData(std::string type)
+{
+    if(type == "hand")
+    {
+        namespace fs = std::filesystem;
+
+        std::string currPath =  fs::current_path();
+        std::string pathToFolder = currPath + "/mediapipe/examples/desktop/controle_module/data/data_hands/";
+
+        std::cout << "COUNT LAYERS = " << countLayers << std::endl;
+
+        for(int layer = 0; layer < countLayers; layer++)
+        {
+            // std::cout << "layer = " << layer << std::endl;
+            loadWeights(pathToFolder, layer);
+            //if(layer == 4)
+            //{
+                // std::cout << "123\n";
+                // std::cout << layers[4]->perceptronsLayer[0].weights[0] <<std::endl;
+                // std::cout << layers[4]->perceptronsLayer[0].weights[1] <<std::endl;
+                // std::cout << layers[4]->perceptronsLayer[0].weights[2] <<std::endl;
+                // std::cout << "123   end\n";
+            //}
+            // std::cout << "end layer" << std::endl;
+        }
+        std::cout << "END LOAD\n";
+    }
+
+    // for(int ii = 0; ii < 100; ii++)
+    // {
+    //     std::cout << "ii = " << ii << std::endl;
+    // }
+
+    std::cout << "END loadData" << std::endl;
+}
 
 void study(std::string type)
 {
@@ -492,6 +529,8 @@ void study(std::string type)
 
         bool flag = 1;
         int dir = 0;
+        // Підрахунок кількість опрацьованих файлів
+        int numbFiles = 0;
         while(flag)
         {
             if(currFiles[dir] < dirsAndFiles[dir])
@@ -504,6 +543,14 @@ void study(std::string type)
                 // numbOfMotion буде співпадати з dir, можна використати dir
                 setTrueAnswer(numbOfMotion);
                 backPropagation();
+
+                ++numbFiles;
+                if(numbFiles % 100)
+                {
+                    std::cout << "All files:" << quantityOfFiles << std::endl;
+                    std::cout << "Files processed:" << numbFiles << std::endl;
+                    std::cout << "levelOfEducation = " << levelOfEducation() << std::endl;
+                }
 
             }
 
@@ -519,48 +566,6 @@ void study(std::string type)
                 }
             }
         }
-
-        // for(int numbFile = 0; numbFile < quantityOfFiles; numbFile++)
-        // {
-        //     QString path = scene->getImgName(dirNumb);
-
-        //     scene->getRGBfromImgForLearning(path);
-
-        //     Neural->setInputPerceptrons(scene->getPixelsArrayPtr(),28,28);
-        //     Neural->calculateNeuralNetwork();
-
-        //     Neural->setTrueAnswer(dirNumb);
-
-        //     Neural->backPropagation();
-
-        //         qDebug() << "Number = " << numb;
-        //         qDebug() << "\niteration = " << 1+dirNumb << "\nlevel of Education = " << Neural->levelOfEducation();
-
-        //         ui->label_49->setText(QString::number(numb+1));
-        //         ui->label_50->setText(QString::number(dirNumb));
-        //         ui->label_51->setText(QString::number(Neural->levelOfEducation()));
-        //         ui->label_55->setText(QString::number(scene->getNumbOfImg()));
-        //         emit sendNumb(numb);
-
-
-        //     dirNumb++;
-        //     if(dirNumb>9)
-        //         dirNumb = 0;
-
-        //     if(isLearning==0)
-        //     {
-        //         g_dirNumb = dirNumb;
-        //         g_numbOfPicture = numb+1;
-        //         break;
-        //     }
-
-        //     if(numb==(scene->getNumbOfImg() - 1))
-        //     {
-        //         emit sendNumb((scene->getNumbOfImg()));
-        //         g_dirNumb = 0;
-        //         g_numbOfPicture = 0;
-        //     }
-        // }
 
         std::cout << "Finish neural network`s learning." << std::endl;
     }
